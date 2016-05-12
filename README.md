@@ -5,9 +5,10 @@ The Golang interface to the Fastdfs Ver 5.08.
 ## Installation
 $ go get github.com/tRavAsty/fdfs_client
 ## Getting Started
-go test $GOPATH/src/github.com/tRavAsty/fdfs_client -v
-and see client_test.go
+ go test $GOPATH/src/github.com/tRavAsty/fdfs_client -v
+
+ 或者看看 client_test.go
 
 # Author
-我是要做毕设的大四狗
-有什么问题请联系我 lchuyi@mail.ustc.edu.cn
+ 我是要做毕设的大四狗
+ 有什么问题请联系我 lchuyi@mail.ustc.edu.cn
