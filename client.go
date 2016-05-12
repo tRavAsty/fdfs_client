@@ -3,6 +3,7 @@ package fdfs_client
 import (
 	"errors"
 	"fmt"
+	"os"
 	"runtime"
 	/*"strconv"
 	"strings"*/
@@ -37,7 +38,10 @@ type storagePool struct {
 }
 
 func init() {
-	logger.Formatter = new(logrus.TextFormatter)
+	//logger.Formatter = new(logrus.TextFormatter)
+	logrus.SetFormatter(&logrus.TextFormatter{})
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.DebugLevel)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	go func() {
 		// start a loop
@@ -45,12 +49,14 @@ func init() {
 			select {
 			case spd := <-storagePoolChan:
 				if sp, ok := storagePoolMap[spd.storagePoolKey]; ok {
+					logger.Debug("storagePool already exist")
 					fetchStoragePoolChan <- sp
 				} else {
 					var (
 						sp  *ConnectionPool
 						err error
 					)
+					logger.Debug("starting a new storagePool")
 					sp, err = NewConnectionPool(spd.hosts, spd.port, spd.minConns, spd.maxConns)
 					if err != nil {
 						fetchStoragePoolChan <- err
@@ -106,6 +112,7 @@ func ColseFdfsClient() {
 
 func (this *FdfsClient) UploadByFilename(filename string) (*UploadFileResponse, error) {
 	if err := fdfsCheckFile(filename); err != nil {
+		logger.Error("fdfsCheckFile error" + err.Error())
 		return nil, errors.New(err.Error() + "(uploading)")
 	}
 
@@ -291,11 +298,14 @@ func (this *FdfsClient) getStoragePool(ipAddr string, port int) (*ConnectionPool
 		case result = <-fetchStoragePoolChan:
 			var storagePool *ConnectionPool
 			if err, ok = result.(error); ok {
+				logger.Error("failed to open connection pool" + err.Error())
 				return nil, err
 			} else if storagePool, ok = result.(*ConnectionPool); ok {
 				return storagePool, nil
 			} else {
-				return nil, errors.New("none")
+				Err := errors.New("none operatoin on storagePool yet")
+				logger.Error(Err.Error())
+				return nil, Err
 			}
 		}
 	}

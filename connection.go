@@ -22,28 +22,41 @@ func (c pConn) Close() error {
 }
 
 type ConnectionPool struct {
-	hosts    []string
-	port     int
-	minConns int
-	maxConns int
-	conns    chan net.Conn
+	hosts     []string
+	port      int
+	minConns  int
+	maxConns  int
+	busyConns []bool
+	conns     chan net.Conn
+}
+
+func minInt(a int, b int) int {
+	if b-a > 0 {
+		return a
+	} else {
+		return b
+	}
 }
 
 func NewConnectionPool(hosts []string, port int, minConns int, maxConns int) (*ConnectionPool, error) {
 	if minConns < 0 || maxConns <= 0 || minConns > maxConns {
-		return nil, errors.New("invalid conns settings")
+		err := errors.New("invalid conns settings")
+		logger.Error(err.Error())
+		return nil, err
 	}
 	cp := &ConnectionPool{
-		hosts:    hosts,
-		port:     port,
-		minConns: minConns,
-		maxConns: maxConns,
-		conns:    make(chan net.Conn, maxConns),
+		hosts:     hosts,
+		port:      port,
+		minConns:  minConns,
+		maxConns:  maxConns,
+		conns:     make(chan net.Conn, maxConns),
+		busyConns: make([]bool, len(hosts)),
 	}
-	for i := 0; i < minConns; i++ {
+	for i := 0; i < minInt(MINCONN, len(hosts)); i++ {
 		conn, err := cp.makeConn()
 		if err != nil {
 			cp.Close()
+			logger.Error("make connection error" + err.Error())
 			return nil, err
 		}
 		cp.conns <- conn
@@ -106,7 +119,14 @@ func (this *ConnectionPool) Len() int {
 }
 
 func (this *ConnectionPool) makeConn() (net.Conn, error) {
-	host := this.hosts[rand.Intn(len(this.hosts))]
+	var n int
+	for {
+		n = rand.Intn(len(this.hosts))
+		if !this.busyConns[n] {
+			this.busyConns[n] = true
+		}
+	}
+	host := this.hosts[n]
 	addr := fmt.Sprintf("%s:%d", host, this.port)
 	return net.DialTimeout("tcp", addr, time.Minute)
 }

@@ -33,6 +33,7 @@ func TestNewFdfsClientByTracker(t *testing.T) {
 }
 
 func TestUploadByFilename(t *testing.T) {
+	logger.Warn("upload by file name")
 	fdfsClient, err := NewFdfsClient("client.conf")
 	if err != nil {
 		t.Errorf("New FdfsClient error %s", err.Error())
