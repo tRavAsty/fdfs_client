@@ -1,11 +1,13 @@
 # Fdfs_client go
-The Golang interface to the Fastdfs Ver 4.06.
+The Golang interface to the Fastdfs Ver 5.08.
 ## Notice:Only realized the upload,download, delete functions
+作者1年前就没有commit了，尝试修复一下bug并且新增一点功能
 ## Installation
-$ go get github.com/weilaihui/fdfs_client
+$ go get github.com/tRavAsty/fdfs_client
 ## Getting Started
-see client_test.go please 
+go test $GOPATH/src/github.com/tRavAsty/fdfs_client -v
+and see client_test.go
 
 # Author
-我是[dockerpool](http://www.dockerpool.com)的一员，你可以在我们的网站上获得更多的帮助。
-联系我 weilaihui@126.com
+我是要做毕设的大四狗
+有什么问题请联系我 lchuyi@mail.ustc.edu.cn
