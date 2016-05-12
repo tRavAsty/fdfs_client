@@ -21,11 +21,12 @@ func TestParserFdfsConfig(t *testing.T) {
 	t.Log(v)
 }
 func TestNewFdfsClientByTracker(t *testing.T) {
-	tracker := &Tracker{
-		[]string{"10.0.1.32"},
-		22122,
+
+	tracker, err := getTrackerConf("client.conf")
+	if err != nil {
+		t.Error(err)
 	}
-	_, err := NewFdfsClientByTracker(tracker)
+	_, err = NewFdfsClientByTracker(tracker)
 	if err != nil {
 		t.Error(err)
 	}

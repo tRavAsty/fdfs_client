@@ -18,10 +18,14 @@ func getConn(pool *ConnectionPool) {
 }
 
 func TestGetConnection(t *testing.T) {
-	hosts := []string{"10.0.1.32"}
-	port := 22122
-	minConns := 10
-	maxConns := 150
+	Config, err := getConf("client.conf")
+	if err != nil {
+		t.Error(err)
+	}
+	hosts := Config.TrackerIp
+	port := Config.TrackerPort[0]
+	minConns := Config.MinConn
+	maxConns := Config.MaxConn
 	pool, err := NewConnectionPool(hosts, port, minConns, maxConns)
 	if err != nil {
 		t.Error(err)
@@ -33,10 +37,14 @@ func TestGetConnection(t *testing.T) {
 }
 
 func BenchmarkGetConnection(b *testing.B) {
-	hosts := []string{"10.0.1.32"}
-	port := 22122
-	minConns := 10
-	maxConns := 150
+	Config, err := getConf("client.conf")
+	if err != nil {
+		b.Error(err)
+	}
+	hosts := Config.TrackerIp
+	port := Config.TrackerPort[0]
+	minConns := Config.MinConn
+	maxConns := Config.MaxConn
 	pool, err := NewConnectionPool(hosts, port, minConns, maxConns)
 	if err != nil {
 		b.Error(err)

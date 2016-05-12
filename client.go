@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"strconv"
-	"strings"
+	/*"strconv"
+	"strings"*/
 
 	"github.com/Sirupsen/logrus"
 )
@@ -65,37 +65,15 @@ func init() {
 		}
 	}()
 }
-func getTrackerConf(confPath string) (*Tracker, error) {
-	fc := &FdfsConfigParser{}
-	cf, err := fc.Read(confPath)
+func getTrackerConf(ConfPath string) (*Tracker, error) {
+	Config := &Config{}
+	Config, err := getConf(ConfPath)
 	if err != nil {
-		logger.Errorf("Read conf error :%s", err)
 		return nil, err
 	}
-	trackerListString, _ := cf.RawString("DEFAULT", "tracker_server")
-	trackerList := strings.Split(trackerListString, ",")
-
-	var (
-		trackerIpList []string
-		trackerPort   string = "22122"
-	)
-
-	for _, tr := range trackerList {
-		var trackerIp string
-		tr = strings.TrimSpace(tr)
-		parts := strings.Split(tr, ":")
-		trackerIp = parts[0]
-		if len(parts) == 2 {
-			trackerPort = parts[1]
-		}
-		if trackerIp != "" {
-			trackerIpList = append(trackerIpList, trackerIp)
-		}
-	}
-	tp, err := strconv.Atoi(trackerPort)
 	tracer := &Tracker{
-		HostList: trackerIpList,
-		Port:     tp,
+		HostList: Config.TrackerIp,
+		Port:     22122,
 	}
 	return tracer, nil
 }
@@ -304,8 +282,8 @@ func (this *FdfsClient) getStoragePool(ipAddr string, port int) (*ConnectionPool
 		storagePoolKey: storagePoolKey,
 		hosts:          hosts,
 		port:           port,
-		minConns:       10,
-		maxConns:       150,
+		minConns:       MINCONN,
+		maxConns:       MAXCONN,
 	}
 	storagePoolChan <- spd
 	for {
