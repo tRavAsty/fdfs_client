@@ -2,6 +2,12 @@
 The Golang interface to the Fastdfs Ver 5.08.
 ## Notice:Only realized the upload,download, delete functions
 作者1年前就没有commit了，尝试修复一下bug并且新增一点功能
+
+第一次commit：
+	1、增加common.go和common_test.go文件，用于松耦合读取配置文件的功能
+	2、connection_test.go client_test.go改成读取配置文件的ip地址，而不是hard code到测试文件中
+	3、设置连接池最大，最小连接数量可变
+
 ## Installation
 $ go get github.com/tRavAsty/fdfs_client
 ## Getting Started

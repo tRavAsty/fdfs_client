@@ -84,7 +84,7 @@ func NewFdfsClient(confPath string) (*FdfsClient, error) {
 		return nil, err
 	}
 
-	trackerPool, err := NewConnectionPool(tracker.HostList, tracker.Port, 10, 150)
+	trackerPool, err := NewConnectionPool(tracker.HostList, tracker.Port, MINCONN, MAXCONN)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func NewFdfsClient(confPath string) (*FdfsClient, error) {
 }
 
 func NewFdfsClientByTracker(tracker *Tracker) (*FdfsClient, error) {
-	trackerPool, err := NewConnectionPool(tracker.HostList, tracker.Port, 10, 150)
+	trackerPool, err := NewConnectionPool(tracker.HostList, tracker.Port, MINCONN, MAXCONN)
 	if err != nil {
 		return nil, err
 	}
