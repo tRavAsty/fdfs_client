@@ -30,15 +30,20 @@ The Golang interface to the Fastdfs Ver 5.08.
 
 
 ## Installation
+
 	$ go get github.com/tRavAsty/fdfs_client
+	
 ## Getting Started
+
 	go test github.com/tRavAsty/fdfs_client -v
 
  运行某一测试函数
+ 
  	go test github.com/tRavAsty/fdfs_client -test.run "Test*" -v
 
  或者看看 client_test.go
 
 # Author
  我是要做毕设的大四狗
+ 
  有什么问题请联系我 lchuyi@mail.ustc.edu.cn
