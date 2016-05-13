@@ -16,10 +16,14 @@ The Golang interface to the Fastdfs Ver 5.08.
 
 第二次commit
 
-1、修复客户端泄露的可能错误
+	1、修复客户端泄露的可能错误
 
-2、增加日志记录，使得更加方便debug
+	2、增加日志记录，使得更加方便debug
 
+第三次commit
+	1、修复for循环没有break的bug
+	
+	2、优化日志
 
 
 ## Installation
