@@ -2,6 +2,7 @@ package fdfs_client
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"os"
 	"testing"
 )
@@ -33,7 +34,11 @@ func TestNewFdfsClientByTracker(t *testing.T) {
 }
 
 func TestUploadByFilename(t *testing.T) {
-	logger.Warn("upload by file name")
+	logger.WithFields(logrus.Fields{
+		"animal": "walrus",
+		"size":   20,
+	}).Info("A group of walrus emerges from the ocean")
+	//logger.Debug("upload by file name")
 	fdfsClient, err := NewFdfsClient("client.conf")
 	if err != nil {
 		t.Errorf("New FdfsClient error %s", err.Error())

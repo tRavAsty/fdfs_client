@@ -22,6 +22,7 @@ type Config struct {
 }
 
 func getConf(ConfPath string) (*Config, error) {
+	//logger.Debug("getConf begin")
 	fc := &FdfsConfigParser{}
 	cf, err := fc.Read(ConfPath)
 	if err != nil {
@@ -86,7 +87,7 @@ func getConf(ConfPath string) (*Config, error) {
 
 		/*} else if len(parts > 2) {
 
-																																																																																																												}*/
+																																																																																																																}*/
 		//if trackerIp != "" {
 		trackerIpList = append(trackerIpList, trackerIp)
 		//}

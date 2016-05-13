@@ -52,6 +52,7 @@ func NewConnectionPool(hosts []string, port int, minConns int, maxConns int) (*C
 		conns:     make(chan net.Conn, maxConns),
 		busyConns: make([]bool, len(hosts)),
 	}
+	logger.Debug("cp made")
 	for i := 0; i < minInt(MINCONN, len(hosts)); i++ {
 		conn, err := cp.makeConn()
 		if err != nil {
@@ -124,6 +125,7 @@ func (this *ConnectionPool) makeConn() (net.Conn, error) {
 		n = rand.Intn(len(this.hosts))
 		if !this.busyConns[n] {
 			this.busyConns[n] = true
+			break
 		}
 	}
 	host := this.hosts[n]
