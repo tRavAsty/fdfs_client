@@ -27,7 +27,14 @@ The Golang interface to the Fastdfs Ver 5.08.
 	1、修复for循环没有break的bug
 	
 	2、优化日志
+	
+第四次commit
 
+
+	1、完善append by file name操作的truncate， append和modify功能
+	
+	2、测试完整append by file name功能并通过
+	 go test github.com/tRavAsty/fdfs_client -test.run "TestUploadAppenderByFilename" -v
 
 ## Installation
 
