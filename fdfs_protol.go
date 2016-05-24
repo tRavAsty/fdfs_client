@@ -96,6 +96,7 @@ const (
 	//common constants
 	FDFS_GROUP_NAME_MAX_LEN     = 16
 	IP_ADDRESS_SIZE             = 16
+	INFINITE_FILE_SIZE          = (256 * 1024 * 1024 * 1024 * 1024 * 1024)
 	FDFS_PROTO_PKG_LEN_SIZE     = 8
 	FDFS_PROTO_CMD_SIZE         = 1
 	FDFS_PROTO_STATUS_SIZE      = 1
@@ -371,4 +372,45 @@ type DownloadFileResponse struct {
 	RemoteFileId string
 	Content      interface{}
 	DownloadSize int64
+}
+
+type truncFileRequest struct {
+	appendernameLen   int64
+	truncatedFileSize int64
+	appenderFileName  string
+}
+
+// #del_fmt: |-group_name(16)-filename(len)-|
+func (this *truncFileRequest) marshal() ([]byte, error) {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, this.appendernameLen)
+	binary.Write(buffer, binary.BigEndian, this.truncatedFileSize)
+
+	// remoteFilenameLen bit remoteFilename
+	remoteFilenameBytes := bytes.NewBufferString(this.appenderFileName).Bytes()
+	for i := 0; i < len(remoteFilenameBytes); i++ {
+		buffer.WriteByte(remoteFilenameBytes[i])
+	}
+	return buffer.Bytes(), nil
+}
+
+type modifyFileRequst struct {
+	appendernameLen  int64
+	offset           int64
+	modifiedFileLen  int64
+	appenderFileName string
+}
+
+func (this *modifyFileRequst) marshal() ([]byte, error) {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, this.appendernameLen)
+	binary.Write(buffer, binary.BigEndian, this.offset)
+	binary.Write(buffer, binary.BigEndian, this.modifiedFileLen)
+
+	// remoteFilenameLen bit remoteFilename
+	remoteFilenameBytes := bytes.NewBufferString(this.appenderFileName).Bytes()
+	for i := 0; i < len(remoteFilenameBytes); i++ {
+		buffer.WriteByte(remoteFilenameBytes[i])
+	}
+	return buffer.Bytes(), nil
 }

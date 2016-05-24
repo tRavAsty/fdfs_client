@@ -23,7 +23,7 @@ func (c pConn) Close() error {
 
 type ConnectionPool struct {
 	hosts     []string
-	port      int
+	ports     []int
 	minConns  int
 	maxConns  int
 	busyConns []bool
@@ -38,7 +38,7 @@ func minInt(a int, b int) int {
 	}
 }
 
-func NewConnectionPool(hosts []string, port int, minConns int, maxConns int) (*ConnectionPool, error) {
+func NewConnectionPool(hosts []string, ports []int, minConns int, maxConns int) (*ConnectionPool, error) {
 	if minConns < 0 || maxConns <= 0 || minConns > maxConns {
 		err := errors.New("invalid conns settings")
 		logger.Error(err.Error())
@@ -46,13 +46,13 @@ func NewConnectionPool(hosts []string, port int, minConns int, maxConns int) (*C
 	}
 	cp := &ConnectionPool{
 		hosts:     hosts,
-		port:      port,
+		ports:     ports,
 		minConns:  minConns,
 		maxConns:  maxConns,
 		conns:     make(chan net.Conn, maxConns),
 		busyConns: make([]bool, len(hosts)),
 	}
-	logger.Debug("cp made")
+	//logger.Debug("cp made")
 	for i := 0; i < minInt(MINCONN, len(hosts)); i++ {
 		conn, err := cp.makeConn()
 		if err != nil {
@@ -109,7 +109,7 @@ func (this *ConnectionPool) Close() {
 	}
 
 	close(conns)
-
+	logger.Debugf("%d", len(conns))
 	for conn := range conns {
 		conn.Close()
 	}
@@ -129,7 +129,8 @@ func (this *ConnectionPool) makeConn() (net.Conn, error) {
 		}
 	}
 	host := this.hosts[n]
-	addr := fmt.Sprintf("%s:%d", host, this.port)
+	addr := fmt.Sprintf("%s:%d", host, this.ports[n])
+
 	return net.DialTimeout("tcp", addr, time.Minute)
 }
 

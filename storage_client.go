@@ -1,6 +1,8 @@
 package fdfs_client
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -68,7 +70,34 @@ func (this *StorageClient) storageUploadAppenderByFilename(tc *TrackerClient,
 	return this.storageUploadFile(tc, storeServ, filename, int64(fileSize), FDFS_UPLOAD_BY_FILENAME,
 		STORAGE_PROTO_CMD_UPLOAD_APPENDER_FILE, "", "", fileExtName)
 }
+func (this *StorageClient) storageAppendByfileName(tc *TrackerClient, storeServ *StorageServer, localFileName string,
+	groupName string, remoteFileName string) error {
+	if remoteFileName == "" || groupName == " " {
+		return errors.New("Invalid group name or append file name")
+	}
+	fileInfo, err := os.Stat(localFileName)
+	if err != nil {
+		return err
+	}
 
+	fileSize := fileInfo.Size()
+	logger.Info("unknown filesize", fileSize)
+	return this.storageDoAppendFile(fileSize, localFileName, groupName, remoteFileName)
+}
+func (this *StorageClient) storageModifyByfileName(tc *TrackerClient, storeServ *StorageServer, localFileName string,
+	offset int64, groupName string, remoteFileName string) error {
+	if remoteFileName == "" || groupName == " " {
+		return errors.New("Invalid group name or append file name")
+	}
+	fileInfo, err := os.Stat(localFileName)
+	if err != nil {
+		return err
+	}
+
+	fileSize := fileInfo.Size()
+	logger.Info("unknown filesize", fileSize)
+	return this.storageDoModifyFile(fileSize, localFileName, offset, groupName, remoteFileName)
+}
 func (this *StorageClient) storageUploadAppenderByBuffer(tc *TrackerClient,
 	storeServ *StorageServer, fileBuffer []byte, fileExtName string) (*UploadFileResponse, error) {
 	bufferSize := len(fileBuffer)
@@ -167,7 +196,7 @@ func (this *StorageClient) storageUploadFile(tc *TrackerClient,
 	return ur, nil
 }
 
-func (this *StorageClient) storageDeleteFile(tc *TrackerClient, storeServ *StorageServer, remoteFilename string) error {
+func (this *StorageClient) storageDeleteFile(tc *TrackerClient, storeServ *StorageServer, remoteFilename string) (*DeleteFileResponse, error) {
 	var (
 		conn   net.Conn
 		reqBuf []byte
@@ -177,7 +206,7 @@ func (this *StorageClient) storageDeleteFile(tc *TrackerClient, storeServ *Stora
 	conn, err = this.pool.Get()
 	defer conn.Close()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	th := &trackerHeader{}
@@ -192,15 +221,30 @@ func (this *StorageClient) storageDeleteFile(tc *TrackerClient, storeServ *Stora
 	reqBuf, err = req.marshal()
 	if err != nil {
 		logger.Warnf("deleteFileRequest.marshal error :%s", err.Error())
-		return err
+		return nil, err
 	}
 	TcpSendData(conn, reqBuf)
 
 	th.recvHeader(conn)
 	if th.status != 0 {
-		return Errno{int(th.status)}
+		return nil, Errno{int(th.status)}
 	}
-	return nil
+	logger.Infof("pkg_len:%d", th.pkgLen)
+	/*recvBuff, recvSize, err := TcpRecvResponse(conn, th.pkgLen)
+	if recvSize <= int64(FDFS_GROUP_NAME_MAX_LEN) {
+		errmsg := "[-] Error: Storage response length is not match, "
+		errmsg += fmt.Sprintf("expect: %d, actual: %d", th.pkgLen, recvSize)
+		logger.Warn(errmsg)
+		return nil, errors.New(errmsg)
+	}*/
+	dr := &DeleteFileResponse{}
+	/*err = dr.unmarshal(recvBuff)
+	if err != nil {
+		errmsg := fmt.Sprintf("recvBuf can not unmarshal :%s", err.Error())
+		logger.Warn(errmsg)
+		return nil, errors.New(errmsg)
+	}*/
+	return dr, nil
 }
 
 func (this *StorageClient) storageDownloadToFile(tc *TrackerClient,
@@ -286,4 +330,218 @@ func (this *StorageClient) storageDownloadFile(tc *TrackerClient,
 	}
 	dr.DownloadSize = recvSize
 	return dr, nil
+}
+
+func (this *StorageClient) storageTruncateFile(tc *TrackerClient, storeServ *StorageServer,
+	appenderFileName string, truncatedFileSize int64) (*DeleteFileResponse, error) {
+	//update connection
+	var (
+		conn   net.Conn
+		reqBuf []byte
+		err    error
+	)
+
+	conn, err = this.pool.Get()
+	defer conn.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	th := &trackerHeader{}
+	th.cmd = STORAGE_PROTO_CMD_TRUNCATE_FILE
+	appenderFileNameLen := len(appenderFileName)
+	th.pkgLen = int64(FDFS_PROTO_PKG_LEN_SIZE*2 + appenderFileNameLen)
+	th.sendHeader(conn)
+	//logger.Info("1111111")
+
+	req := &truncFileRequest{}
+	req.appendernameLen = int64(appenderFileNameLen)
+	req.truncatedFileSize = truncatedFileSize
+	req.appenderFileName = appenderFileName
+
+	reqBuf, err = req.marshal()
+	if err != nil {
+		logger.Warnf("deleteFileRequest.marshal error :%s", err.Error())
+		return nil, err
+	}
+	TcpSendData(conn, reqBuf)
+	th.recvHeader(conn)
+	if th.status != 0 {
+		return nil, Errno{int(th.status)}
+	}
+
+	logger.Infof("pkg_len:%d", th.pkgLen)
+
+	/*recvBuff, recvSize, err := TcpRecvResponse(conn, th.pkgLen)
+	if recvSize <= int64(FDFS_GROUP_NAME_MAX_LEN) {
+		errmsg := "[-] Error: Storage response length is not match, "
+		errmsg += fmt.Sprintf("expect: %d, actual: %d", th.pkgLen, recvSize)
+		logger.Warn(errmsg)
+		return nil, errors.New(errmsg)
+	}*/
+
+	dr := &DeleteFileResponse{}
+	/*err = dr.unmarshal(recvBuff)
+	if err != nil {
+		errmsg := fmt.Sprintf("recvBuf can not unmarshal :%s", err.Error())
+		logger.Warn(errmsg)
+		return nil, errors.New(errmsg)
+	}*/
+	logger.Debug("1")
+	return dr, nil
+
+}
+func (this *StorageClient) storageQueryFileInfo(groupName string, remoteFileName string) (*fileInfo, error) {
+	var (
+		conn     net.Conn
+		recvBuff []byte
+		err      error
+	)
+
+	conn, err = this.pool.Get()
+	defer conn.Close()
+	if err != nil {
+		return nil, err
+	}
+	th := &trackerHeader{}
+	th.pkgLen = int64(FDFS_GROUP_NAME_MAX_LEN + len(remoteFileName))
+	th.cmd = STORAGE_PROTO_CMD_QUERY_FILE_INFO
+	th.sendHeader(conn)
+	queryBuffer := new(bytes.Buffer)
+	// 16 bit groupName
+	groupNameBytes := bytes.NewBufferString(groupName).Bytes()
+	for i := 0; i < 16; i++ {
+		if i >= len(groupNameBytes) {
+			queryBuffer.WriteByte(byte(0))
+		} else {
+			queryBuffer.WriteByte(groupNameBytes[i])
+		}
+	}
+	// remoteFilenameLen bit remoteFilename
+	remoteFilenameBytes := bytes.NewBufferString(remoteFileName).Bytes()
+	for i := 0; i < len(remoteFilenameBytes); i++ {
+		queryBuffer.WriteByte(remoteFilenameBytes[i])
+	}
+	err = TcpSendData(conn, queryBuffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	th.recvHeader(conn)
+	if th.status != 0 {
+		logger.Warnf("recvHeader error [%d]", th.status)
+		return nil, Errno{int(th.status)}
+	}
+	var (
+		x               int32
+		createTimeStamp int32
+		crc32           int32
+		fileSize        int64
+		ipAddr          string
+	)
+	logger.Infof("pkg_len:%d", th.pkgLen)
+	recvBuff, _, err = TcpRecvResponse(conn, th.pkgLen)
+	if err != nil {
+		logger.Warnf("TcpRecvResponse error :%s", err.Error())
+		return nil, err
+	}
+	buff := bytes.NewBuffer(recvBuff)
+	binary.Read(buff, binary.BigEndian, &fileSize)
+	//logger.Infof("filesize:%d", fileSize)
+	binary.Read(buff, binary.BigEndian, &x)
+	binary.Read(buff, binary.BigEndian, &createTimeStamp)
+	//logger.Infof("timestamp:%d", createTimeStamp)
+	binary.Read(buff, binary.BigEndian, &x)
+	binary.Read(buff, binary.BigEndian, &crc32)
+	//logger.Infof("crc32:%d", crc32)
+	ipAddr, err = readCstr(buff, IP_ADDRESS_SIZE-1)
+	if err != nil {
+		return nil, err
+	}
+	//logger.Info("ip:" + ipAddr)
+	return &fileInfo{createTimeStamp,
+		crc32,
+		0,
+		fileSize,
+		ipAddr}, nil
+
+}
+func (this *StorageClient) storageDoAppendFile(fileSize int64, localFileName string,
+	groupName string, remoteFileName string) error {
+	var (
+		conn   net.Conn
+		reqBuf []byte
+		err    error
+	)
+
+	conn, err = this.pool.Get()
+	defer conn.Close()
+	if err != nil {
+		return err
+	}
+	th := &trackerHeader{}
+	th.cmd = STORAGE_PROTO_CMD_APPEND_FILE
+	appenderFileNameLen := len(remoteFileName)
+	th.pkgLen = int64(FDFS_PROTO_PKG_LEN_SIZE*2+appenderFileNameLen) + fileSize
+	th.sendHeader(conn)
+	req := &truncFileRequest{}
+	req.appendernameLen = int64(appenderFileNameLen)
+	req.truncatedFileSize = fileSize
+	req.appenderFileName = remoteFileName
+
+	reqBuf, err = req.marshal()
+	if err != nil {
+		logger.Warnf("deleteFileRequest.marshal error :%s", err.Error())
+		return err
+	}
+	TcpSendData(conn, reqBuf)
+	TcpSendFile(conn, localFileName)
+	th.recvHeader(conn)
+	if th.status != 0 {
+		return Errno{int(th.status)}
+	}
+
+	logger.Infof("pkg_len:%d", th.pkgLen)
+
+	return nil
+}
+func (this *StorageClient) storageDoModifyFile(fileSize int64, localFileName string, offset int64,
+	groupName string, remoteFileName string) error {
+	var (
+		conn   net.Conn
+		reqBuf []byte
+		err    error
+	)
+
+	conn, err = this.pool.Get()
+	defer conn.Close()
+	if err != nil {
+		return err
+	}
+	th := &trackerHeader{}
+	th.cmd = STORAGE_PROTO_CMD_MODIFY_FILE
+	appenderFileNameLen := len(remoteFileName)
+	th.pkgLen = int64(FDFS_PROTO_PKG_LEN_SIZE*3+appenderFileNameLen) + fileSize
+	th.sendHeader(conn)
+	req := &modifyFileRequst{}
+	req.appendernameLen = int64(appenderFileNameLen)
+	req.offset = offset
+	req.modifiedFileLen = fileSize
+	req.appenderFileName = remoteFileName
+
+	reqBuf, err = req.marshal()
+	if err != nil {
+		logger.Warnf("deleteFileRequest.marshal error :%s", err.Error())
+		return err
+	}
+	TcpSendData(conn, reqBuf)
+	TcpSendFile(conn, localFileName)
+	th.recvHeader(conn)
+	if th.status != 0 {
+		return Errno{int(th.status)}
+	}
+
+	logger.Infof("pkg_len:%d", th.pkgLen)
+
+	return nil
 }
